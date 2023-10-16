@@ -8,6 +8,8 @@ Since twinBASIC supports 64bit, there's more of a reason than ever to check whet
 
 ## How it works
 
+(Overview only, needs full code to run)
+
 The key is a couple headers at the start of all Windows executable (PE format) files
 
 ```vb6
@@ -53,7 +55,7 @@ End Type
 >[!NOTE]
 >There's different `IMAGE_OPTIONAL_HEADER` types for 32 and 64bit because of pointer size differences, and subsequently different `IMAGE_NT_HEADERS`, but we don't worry about that for this check because we only need the `IMAGE_FILE_HEADER` and `IMAGE_DOS_HEADER`, which are the same on both 32bit and 64bit.
 
-With those defs, here's what we do:
+All of those definitions, and the omitted enums and constants, are included in tbShellLib. With those defs, here's what we do:
 
 1. Load the file with `CreateFile` and map it into memory with `CreateFileMapping/MapViewOfFile`
 2. The mapping gives us a base address, from which we copy the `IMAGE_DOS_HEADER`

@@ -1,0 +1,163 @@
+[ Description ("") ]
+[ FormDesignerId ("CE28BF52-0A1C-44D5-97C8-C8778D129F36") ]
+[ PredeclaredId ]
+Class Form1
+
+    Private Sub AppendLog(sMsg As String)
+        Form1.Text4.Text &= sMsg & vbCrLf
+    End Sub
+
+    Private Function GetPEMachine(sFile As String) As Integer
+        Dim lpBaseAddress As LongPtr
+        Dim hFile As LongPtr
+        Dim hMapping As LongPtr
+    
+        hFile = CreateFileW(StrPtr(sFile), GENERIC_READ, FILE_SHARE_READ, vbNullPtr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0)
+
+        If hFile = INVALID_HANDLE_VALUE Then
+            AppendLog "Failed to open file " & sFile
+            Return -1
+        End If
+
+        hMapping = CreateFileMappingW(hFile, vbNullPtr, PAGE_READONLY, 0, 0, 0)
+
+        If hMapping = 0 Then
+            AppendLog "Failed to map file " & sFile
+            CloseHandle hFile
+            Return -1
+        End If
+
+        lpBaseAddress = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, 0)
+    
+        If lpBaseAddress = 0 Then
+            AppendLog "Failed to map file " & sFile
+            CloseHandle hMapping
+            CloseHandle hFile
+            Return -1
+        End If
+        Dim tDOS As IMAGE_DOS_HEADER
+        Dim tNT As IMAGE_NT_HEADERS
+    
+        'All EXEs and DLLs start with an IMAGE_DOS_HEADER structure
+        CopyMemory tDOS, ByVal lpBaseAddress, LenB(tDOS)
+        If tDOS.e_magic = IMAGE_DOS_SIGNATURE Then 'The magic number, 'MZ', is a good sign our address gave us a valid executable
+            'e_lfanew points to the IMAGE_NT_HEADERS structure
+            'We only copy the Signature and IMAGE_FILE_HEADER, because the optional header is different depending
+            'on x86 or x64, and we don't it for this purpose.
+            CopyMemory tNT, ByVal PointerAdd(lpBaseAddress, tDOS.e_lfanew), LenB(tNT.FileHeader) + 4
+            UnmapViewOfFile lpBaseAddress
+            CloseHandle hMapping
+            CloseHandle hFile
+            Return tNT.FileHeader.Machine
+        Else
+            AppendLog "Signature check failed, not a valid executable."
+        End If
+        UnmapViewOfFile lpBaseAddress
+        CloseHandle hMapping
+        CloseHandle hFile
+        Return -1
+    End Function
+
+    Private Function CIntToUInt(ByVal Value As Integer) As Long
+    Const OFFSET_2 As Long = 65536
+    If Value < 0 Then
+        CIntToUInt = Value + OFFSET_2
+    Else
+        CIntToUInt = Value
+    End If
+    End Function
+    
+    Private Sub Command2_Click() Handles Command2.Click
+        AppendLog "Processing file " & Text2.Text & "..."
+        Dim nType As Integer = GetPEMachine(Text2.Text)
+        Select Case CIntToUInt(nType)
+        	Case IMAGE_FILE_MACHINE_I386
+                AppendLog "Image is 32bit Windows executable."
+            Case IMAGE_FILE_MACHINE_AMD64
+                AppendLog "Image is 64bit AMD64 Windows executable."
+            Case IMAGE_FILE_MACHINE_IA64
+                AppendLog "Image is 64bit Itanium Windows executable."
+            Case IMAGE_FILE_MACHINE_ARM64
+                AppendLog "Image is 64bit ARM Windows executable."
+            Case -1
+                AppendLog "Invalid image."
+            Case Else
+                AppendLog "Image is non-Windows executable, " & GetImageMachineTypeStr(CIntToUInt(nType))
+        End Select
+    End Sub
+    
+    Public Function GetImageMachineTypeStr(lVal As Long) As String
+    Dim sRet As String
+     If (lVal = IMAGE_FILE_MACHINE_UNKNOWN) Then sRet = "IMAGE_FILE_MACHINE_UNKNOWN"
+     If (lVal = IMAGE_FILE_MACHINE_TARGET_HOST) Then sRet = "IMAGE_FILE_MACHINE_TARGET_HOST"
+     If (lVal = IMAGE_FILE_MACHINE_I386) Then sRet = "IMAGE_FILE_MACHINE_I386"
+     If (lVal = IMAGE_FILE_MACHINE_R3000) Then sRet = "IMAGE_FILE_MACHINE_R3000"
+     If (lVal = IMAGE_FILE_MACHINE_R4000) Then sRet = "IMAGE_FILE_MACHINE_R4000"
+     If (lVal = IMAGE_FILE_MACHINE_R10000) Then sRet = "IMAGE_FILE_MACHINE_R10000"
+     If (lVal = IMAGE_FILE_MACHINE_WCEMIPSV2) Then sRet = "IMAGE_FILE_MACHINE_WCEMIPSV2"
+     If (lVal = IMAGE_FILE_MACHINE_ALPHA) Then sRet = "IMAGE_FILE_MACHINE_ALPHA"
+     If (lVal = IMAGE_FILE_MACHINE_SH3) Then sRet = "IMAGE_FILE_MACHINE_SH3"
+     If (lVal = IMAGE_FILE_MACHINE_SH3DSP) Then sRet = "IMAGE_FILE_MACHINE_SH3DSP"
+     If (lVal = IMAGE_FILE_MACHINE_SH3E) Then sRet = "IMAGE_FILE_MACHINE_SH3E"
+     If (lVal = IMAGE_FILE_MACHINE_SH4) Then sRet = "IMAGE_FILE_MACHINE_SH4"
+     If (lVal = IMAGE_FILE_MACHINE_SH5) Then sRet = "IMAGE_FILE_MACHINE_SH5"
+     If (lVal = IMAGE_FILE_MACHINE_ARM) Then sRet = "IMAGE_FILE_MACHINE_ARM"
+     If (lVal = IMAGE_FILE_MACHINE_THUMB) Then sRet = "IMAGE_FILE_MACHINE_THUMB"
+     If (lVal = IMAGE_FILE_MACHINE_ARMNT) Then sRet = "IMAGE_FILE_MACHINE_ARMNT"
+     If (lVal = IMAGE_FILE_MACHINE_AM33) Then sRet = "IMAGE_FILE_MACHINE_AM33"
+     If (lVal = IMAGE_FILE_MACHINE_POWERPC) Then sRet = "IMAGE_FILE_MACHINE_POWERPC"
+     If (lVal = IMAGE_FILE_MACHINE_POWERPCFP) Then sRet = "IMAGE_FILE_MACHINE_POWERPCFP"
+     If (lVal = IMAGE_FILE_MACHINE_IA64) Then sRet = "IMAGE_FILE_MACHINE_IA64"
+     If (lVal = IMAGE_FILE_MACHINE_MIPS16) Then sRet = "IMAGE_FILE_MACHINE_MIPS16"
+     If (lVal = IMAGE_FILE_MACHINE_ALPHA64) Then sRet = "IMAGE_FILE_MACHINE_ALPHA64"
+     If (lVal = IMAGE_FILE_MACHINE_MIPSFPU) Then sRet = "IMAGE_FILE_MACHINE_MIPSFPU"
+     If (lVal = IMAGE_FILE_MACHINE_MIPSFPU16) Then sRet = "IMAGE_FILE_MACHINE_MIPSFPU16"
+     If (lVal = IMAGE_FILE_MACHINE_AXP64) Then sRet = "IMAGE_FILE_MACHINE_AXP64"
+     If (lVal = IMAGE_FILE_MACHINE_TRICORE) Then sRet = "IMAGE_FILE_MACHINE_TRICORE"
+     If (lVal = IMAGE_FILE_MACHINE_CEF) Then sRet = "IMAGE_FILE_MACHINE_CEF"
+     If (lVal = IMAGE_FILE_MACHINE_EBC) Then sRet = "IMAGE_FILE_MACHINE_EBC"
+     If (lVal = IMAGE_FILE_MACHINE_AMD64) Then sRet = "IMAGE_FILE_MACHINE_AMD64"
+     If (lVal = IMAGE_FILE_MACHINE_M32R) Then sRet = "IMAGE_FILE_MACHINE_M32R"
+     If (lVal = IMAGE_FILE_MACHINE_ARM64) Then sRet = "IMAGE_FILE_MACHINE_ARM64"
+     If (lVal = IMAGE_FILE_MACHINE_CEE) Then sRet = "IMAGE_FILE_MACHINE_CEE"
+     If (lVal = IMAGE_FILE_MACHINE_ARM64EC) Then sRet = "IMAGE_FILE_MACHINE_ARM64EC"
+     If (lVal = IMAGE_FILE_MACHINE_ARM64X) Then sRet = "IMAGE_FILE_MACHINE_ARM64X"
+    If sRet = "" Then sRet = "(unknown, 0x" & Hex$(lVal) & ")"
+    GetImageMachineTypeStr = sRet
+    End Function
+    
+    Private Sub Command1_Click() Handles Command1.Click
+        Text2.Text = PickFile()
+    End Sub
+    
+    Private Function PickFile() As String
+        Dim fod As FileOpenDialog
+        Set fod = New FileOpenDialog
+        Dim lpAbsPath As LongPtr
+        Dim lpPath As LongPtr
+        Dim siRes As IShellItem
+        Dim tFilt() As COMDLG_FILTERSPEC
+        ReDim tFilt(1)
+        tFilt(0).pszName = StrPtr("PE Files")
+        tFilt(0).pszSpec = StrPtr("*.exe;*.dll;*.com;*.sys;*.scr;*.cpl")
+        tFilt(1).pszName = StrPtr("All Files")
+        tFilt(1).pszSpec = StrPtr("*.*")
+        With fod
+            .SetTitle "Pick folder"
+            .SetOptions FOS_PATHMUSTEXIST
+            .SetFileTypes 2, VarPtr(tFilt(0))
+            On Error Resume Next
+            .Show Me.hWnd
+            .GetResult siRes
+            On Error GoTo 0
+            If (siRes Is Nothing) = False Then
+                'siRes.GetDisplayName SIGDN_DESKTOPABSOLUTEPARSING, lpAbsPath
+                siRes.GetDisplayName SIGDN_FILESYSPATH, lpPath
+                PickFile = LPWSTRtoStr(lpPath)
+                If InStr(PickFile, " ") Then
+                    PickFile = Chr$(34) & PickFile & Chr$(34)
+                End If
+            End If
+        End With
+    End Function
+End Class

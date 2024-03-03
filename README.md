@@ -1,6 +1,8 @@
 # CheckBitness
 A simple utility to verify an executable is valid and check whether 32bit/64bit
 
+Update (03 Mar 2024): .twinproj has been updated to use a more recent version of WinDevLib (formerly tbShellLib) due to errors in the package tB did not raise at the time this project was released.
+
 ![image](https://github.com/fafalone/CheckBitness/assets/7834493/a2193090-8835-45b4-bdbb-23df50a26218)
 
 
